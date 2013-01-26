@@ -12,22 +12,11 @@ class CopperGenie
       rescue
         puts "parse error"
       end
-      if alert["kind"] == "active"
-        create_alert(alert)
-      else
-        close_alert(alert)
-      end
-    end
 
-    def close_alert(alert)
-      label = alert["details"][2]["label"]
-      post_to_opsgenie(:close, {:alias => label})
-    end
-
-    def create_alert(alert)
+      verb = alert["kind"] == "active" ? :create : :close
       description = alert["alert_text"]
       label = alert["details"][2]["label"]
-      post_to_opsgenie(:create, {:alias => label, :message => description})
+      post_to_opsgenie(verb, {:alias => label, :message => description})
     end
 
     def post_to_opsgenie(action = :create, params = {})
