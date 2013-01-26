@@ -1,30 +1,38 @@
 require 'sinatra/base'
 require 'json'
-require 'net/http'
+require 'net/https'
 
 class CopperGenie
 
   class Server < Sinatra::Base
 
     post "/?" do
-      JSON.parse(request.body)
+      begin
+        alert = JSON.parse(request.body.read)
+      rescue
+        puts "parse error"
+      end
+      if alert["kind"] == "active"
+        create_alert(alert)
+      else
+        close_alert(alert)
+      end
     end
 
-    def event_id
-      @event['client']['name'] + '/' + @event['check']['name']
+    def close_alert(alert)
+      label = alert["details"][2]["label"]
+      post_to_opsgenie(:close, {:alias => label})
     end
 
-    def close_alert
-      post_to_opsgenie(:close, {:alias => event_id})
-    end
-
-    def create_alert(description)
-      post_to_opsgenie(:create, {:alias => event_id, :message => description})
+    def create_alert(alert)
+      description = alert["alert_text"]
+      label = alert["details"][2]["label"]
+      post_to_opsgenie(:create, {:alias => label, :message => description})
     end
 
     def post_to_opsgenie(action = :create, params = {})
-      params["customerKey"] = settings["opsgenie"]["customerKey"]
-      params["recipients"]  = settings["opsgenie"]["recipients"]
+      params["customerKey"] = ENV["OPSGENIE_CUSTOMERKEY"]
+      params["recipients"]  = ENV["OPSGENIE_RECIPIENTS"]
 
       uripath = (action == :create) ? "" : "close"
 
@@ -34,8 +42,7 @@ class CopperGenie
       http.verify_mode = OpenSSL::SSL::VERIFY_NONE
       request = Net::HTTP::Post.new(uri.request_uri,initheader = {'Content-Type' =>'application/json'})
       request.body = params.to_json
-      response = http.request(request)
-      JSON.parse(response.body)
+      http.request(request)
     end
   end
 
