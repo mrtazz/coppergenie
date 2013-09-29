@@ -1,4 +1,4 @@
-# coppergenie
+# coppergenie [![Code Climate](https://codeclimate.com/github/mrtazz/coppergenie.png)](https://codeclimate.com/github/mrtazz/coppergenie)
 
 ## Overview
 This is a simple sinatra app which acts as a bridge between
